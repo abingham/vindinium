@@ -1,34 +1,49 @@
 (ns vindinium.astar
-  (:use clojure.data.priority-map))
+  (:use clojure.data.priority-map)
+  (:use clojure.test))
+
+(defn- manhattan-distance [graph [x1 y1] [x2 y2]]
+  (+ (Math/abs (- x1 x2)) 
+     (Math/abs (- y1 y2))))
 
 (defn- h [graph start goal]
-  ; TODO
-  1
+  (manhattan-distance graph start goal))
+
+(defn- reconstruct-path [came-from node]
+  (loop [node node
+         path [node]]
+    (if (not (contains? came-from node))
+      path
+      (recur (came-from node) 
+             (conj path (came-from node))))))
+
+(defn- graph-size [g]
+  {:x (if (empty? g) 0 (count (first g))),
+   :y (count g)}
 )
 
-(defn- reconstruct-path [graph came-from goal]
-  ; TODO
-  1
-)
-
-(defn- find-neighbors [graph pos]
-  ; TODO
-  1
-)
-
-(defn- distance [graph [x1 y1] [x2 y2]]
-  (+ (abs (x1 - x2) (abs y1 - y2))))
+(defn- find-neighbors [graph [x y]]
+  (let [{size-x :x, size-y :y} (graph-size graph)]
+    (for [nx (range (dec x) (+ x 2))
+          ny (range (dec y) (+ y 2))
+          :when (and (>= nx 0)
+                     (>= ny 0)
+                     (< nx size-x)
+                     (< ny size-y)
+                     (not= [nx ny] [x y]))]
+      [nx ny])))
 
 (defn update-sets [graph
                    current
                    n
+                   goal
                    came-from
                    g-score
                    f-score
                    open-set]
   "Updates the algorithm state (g-score, f-score, open-set, and
 came-from) based on a discovering a neighber N of node CURRENT."
-  (let [tentative-score (+ (g-score n) (distance graph current n))]
+  (let [tentative-score (+ (g-score current) (manhattan-distance graph current n))]
     (if (or (not (contains? g-score n)) 
             (< tentative-score (g-score n)))
       
@@ -40,12 +55,13 @@ came-from) based on a discovering a neighber N of node CURRENT."
       {:came-from came-from, 
        :g-score g-score,
        :f-score f-score,
-       :open-set open-set}))
+       :open-set open-set})))
 
-(defn- combine-states (x y)
+(defn- combine-states [x y]
+  ; TODO: Surely this can be done as a comprehension. Look into it.
   {:came-from (conj (x :came-from) (y :came-from))
    :g-score (conj (x :g-score) (y :g-score))
-   :f-score (conj (x :f-score) (y :g-score))
+   :f-score (conj (x :f-score) (y :f-score))
    :open-set (conj (x :open-set) (y :open-set))}
 )
 
@@ -57,18 +73,18 @@ came-from) based on a discovering a neighber N of node CURRENT."
          came-from (hash-map)]
     (let [current (first open-set)]
       (if (= current goal) 
-        (reconstruct-path graph came-from goal)
+        (reconstruct-path came-from goal)
         (let [open-set (disj open-set current)
               closed-set (conj closed-set current)
               neighbors (filter (fn [x] (not (contains? closed-set x))) 
                                 (find-neighbors graph current))
-              state-updates (map (fn [n] (update-sets graph current n came-from g-score f-score open-set))
-                                 neighbbors)
+              state-updates (map (fn [n] (update-sets graph current n goal came-from g-score f-score open-set))
+                                 neighbors)
               new-state (reduce 'combine-states 
                                 {:came-from came-from,
                                  :g-score g-score,
                                  :f-score f-score,
-                                 :open-set openset}
+                                 :open-set open-set}
                                 state-updates)]
           (recur (new-state :g-score)
                  (new-state :f-score)

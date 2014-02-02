@@ -1,7 +1,9 @@
 (ns vindinium.core
   (:gen-class)
   (:use [slingshot.slingshot :only [try+, throw+]])
-  (:use [clojure.core.match :only (match)]))
+  (:use [clojure.core.match :only (match)])
+  (:use 'clojure.java.io)
+  (:use 'clojure.string))
 
 (require '[clj-http.client :as http])
 
@@ -9,8 +11,30 @@
 
 (defn bot [input]
   "Implement this function to create your bot!"
-  ; (prn input)
+  (with-open [wrtr (writer "foobar")]
+    (.write wrtr (board-to-string (-> input :game :board)))
+    (.write wrtr "\n\n")
+    (.write wrtr (str (-> input :game :board)))
+    (.write wrtr "\n\n")
+    (.write wrtr (str input)))
   (first (shuffle ["north", "south", "east", "west", "stay"])))
+
+(defn board-to-string [board]
+  "Turn a board into a pretty string."
+  (clojure.string/join "\n"
+                       (map row-to-string (partition (board :size) (board :tiles)))))
+
+(defn row-to-string [row]
+  (clojure.string/join "" (map tile-to-char row)))
+
+(defn tile-to-char [tile]
+  (match [tile]
+   [{:tile :wall}] "*"
+   [{:tile :air}] " "
+   [{:tile :mine}] "m"
+   [{:tile :tavern}] "t"
+   [{:tile :hero, :id x}] (str x)
+   :else "?"))
 
 (defn parse-tile [tile]
   (match (vec tile)

@@ -9,6 +9,7 @@
                  [cheshire "5.3.1"]
                  [slingshot "0.10.3"]
                  [org.clojure/core.match "0.2.1"]
+                 [org.clojure/data.priority-map "0.0.4"]
                  ]
   :main ^:skip-aot vindinium.core
   :target-path "target/%s"
