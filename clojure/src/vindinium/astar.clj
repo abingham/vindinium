@@ -2,6 +2,10 @@
   (:use clojure.data.priority-map)
   (:use clojure.test))
 
+(defn- xor [x y]
+  (and (or x y)
+       (not (and x y))))
+
 (defn- manhattan-distance [graph [x1 y1] [x2 y2]]
   (+ (Math/abs (- x1 x2)) 
      (Math/abs (- y1 y2))))
@@ -30,7 +34,7 @@
                      (>= ny 0)
                      (< nx size-x)
                      (< ny size-y)
-                     (not= [nx ny] [x y]))]
+                     (xor (= x nx) (= y ny)))]
       [nx ny])))
 
 (defn update-sets [graph
@@ -69,9 +73,9 @@ came-from) based on a discovering a neighber N of node CURRENT."
   (loop [g-score (hash-map start 0) ; distance to from start to node
          f-score (hash-map start (h graph start goal)) ; distance to node (g-score) plus heuristic distance to goal
          closed-set (hash-set)
-         open-set (sorted-set-by 'f-score start)
+         open-set (hash-set start)
          came-from (hash-map)]
-    (let [current (first open-set)]
+    (let [current (apply min-key 'f-score open-set)]
       (if (= current goal) 
         (reconstruct-path came-from goal)
         (let [open-set (disj open-set current)

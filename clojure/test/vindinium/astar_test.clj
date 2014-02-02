@@ -7,6 +7,8 @@
   `(let ~(reduce #(conj %1 %2 `(ns-resolve '~ns '~%2)) [] fns)
      ~@tests))
 
+
+
 (def simple-graph [[0 0 0 0]
                    [1 1 1 1]
                    [2 2 2 2]
@@ -14,7 +16,8 @@
 
 (with-private-fns [vindinium.astar [find-neighbors
                                     manhattan-distance
-                                    reconstruct-path]]
+                                    reconstruct-path
+                                    xor]]
 
   (deftest test-manhattan-distance
     (doseq [[rslt start finish] 
@@ -37,15 +40,15 @@
                              [2 2]))))
 
   (deftest test-find-neighbors-top-left-corner
-    (is (= (sort [[1 0] [0 1] [1 1]])
+    (is (= (sort [[1 0] [0 1]])
            (sort (find-neighbors simple-graph [0 0])))))
 
   (deftest test-find-neighbors-bottom-right-corner
-    (is (= (sort [[2 3] [2 2] [3 2]])
+    (is (= (sort [[2 3] [3 2]])
            (sort (find-neighbors simple-graph [3 3])))))
 
   (deftest test-find-neighbors-middle
-    (is (= (sort (for [x (range 3) y (range 3) :when (not= [1 1] [x y])] [x y]))
+    (is (= (sort (for [x (range 3) y (range 3) :when (xor (= x 1) (= y 1))] [x y]))
            (sort (find-neighbors simple-graph [1 1])))))
 
 )
