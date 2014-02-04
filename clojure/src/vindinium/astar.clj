@@ -8,7 +8,7 @@
   (loop [node node
          path [node]]
     (if (not (contains? came-from node))
-      path
+      (reverse path)
       (recur (came-from node) 
              (conj path (came-from node))))))
 

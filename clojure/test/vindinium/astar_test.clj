@@ -34,7 +34,9 @@
   `(let ~(reduce #(conj %1 %2 `(ns-resolve '~ns '~%2)) [] fns)
      ~@tests))
 
-
+(defn check-path [path start goal]
+  
+)
 
 (def simple-graph [[0 0 0 0]
                    [1 1 1 1]
@@ -45,7 +47,7 @@
 (with-private-fns [vindinium.astar [reconstruct-path]]
 
   (deftest test-reconstruct-path
-    (is (= [[1 1] [0 1] [0 0]] 
+    (is (= [[0 0] [0 1] [1 1]] 
            (reconstruct-path {[1 1] [0 1],
                               [0 1] [0 0]}
                              [1 1]))))
