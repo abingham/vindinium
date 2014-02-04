@@ -48,35 +48,43 @@ came-from) based on a discovering a neighber N of node CURRENT."
               goal
               heuristic
               find-neighbors]
+  "Uses A-* to find a path from node START to node GOAL. HEURISTIC
+must be function taking two nodes and returning an estimate of the
+distance from one to the other. HEURISTIC must be 'admissble' meaning
+that it must not overstimate the distance. FIND-NEIGHBORS must take a
+node and return all of its neighbors in the graph."
   (loop [g-score (hash-map start 0) ; distance to from start to node
          f-score (hash-map start (heuristic start goal)) ; distance to node (g-score) plus heuristic distance to goal
          closed-set (hash-set)
          open-set (hash-set start)
          came-from (hash-map)]
-    (let [current (apply min-key 'f-score open-set)]
-      (if (= current goal) 
-        (reconstruct-path came-from goal)
-        (let [open-set (disj open-set current)
-              closed-set (conj closed-set current)
-              neighbors (filter (fn [x] (not (contains? closed-set x))) 
-                                (find-neighbors current))
-              state-updates (map (fn [n] (update-sets current 
-                                                      n 
-                                                      goal 
-                                                      heuristic
-                                                      came-from 
-                                                      g-score 
-                                                      f-score 
-                                                      open-set))
-                                 neighbors)
-              new-state (reduce 'combine-states 
-                                {:came-from came-from,
-                                 :g-score g-score,
-                                 :f-score f-score,
-                                 :open-set open-set}
-                                state-updates)]
-          (recur (new-state :g-score)
-                 (new-state :f-score)
-                 closed-set
-                 (new-state :open-set)
-                 (new-state :came-from)))))))
+    ; TODO: There must be a better way to express this than with the if-statements. Pattern matching? Something...
+    (if (empty? open-set)
+      []
+      (let [current (apply min-key 'f-score open-set)]
+        (if (= current goal) 
+          (reconstruct-path came-from goal)
+          (let [open-set (disj open-set current)
+                closed-set (conj closed-set current)
+                neighbors (filter (fn [x] (not (contains? closed-set x))) 
+                                  (find-neighbors current))
+                state-updates (map (fn [n] (update-sets current 
+                                                        n 
+                                                        goal 
+                                                        heuristic
+                                                        came-from 
+                                                        g-score 
+                                                        f-score 
+                                                        open-set))
+                                   neighbors)
+                new-state (reduce 'combine-states 
+                                  {:came-from came-from,
+                                   :g-score g-score,
+                                   :f-score f-score,
+                                   :open-set open-set}
+                                  state-updates)]
+            (recur (new-state :g-score)
+                   (new-state :f-score)
+                   closed-set
+                   (new-state :open-set)
+                   (new-state :came-from))))))))

@@ -122,7 +122,7 @@
                      (partial find-neighbors graph))]
     (is (valid-solution? path start goal))))
 
-(deftest test-astar-simple
+(deftest test-astar-snake
   (let [graph [[0 0 1 1]
                [1 0 1 1]
                [1 0 0 0]
@@ -134,3 +134,16 @@
                      manhattan-distance
                      (partial find-neighbors graph))]
     (is (valid-solution? path start goal))))
+
+(deftest test-astar-no-solution
+  (let [graph [[0 0 0 0]
+               [0 0 0 0]
+               [1 1 1 1]
+               [0 0 0 0]]
+        start [0 0]
+        goal [3 3]
+        path (a-star start
+                     goal
+                     manhattan-distance
+                     (partial find-neighbors graph))]
+    (is (= path []))))
