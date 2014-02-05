@@ -117,9 +117,9 @@
         start [0 0]
         goal [3 3]
         path (a-star start
-                     (->GoalDef goal
-                                manhattan-distance
-                                (partial find-neighbors graph)))]
+                     goal
+                     manhattan-distance
+                     (partial find-neighbors graph))]
     (is (valid-solution? path start goal))))
 
 (deftest test-astar-snake
@@ -130,9 +130,9 @@
         start [0 0]
         goal [3 3]
         path (a-star start
-                     (->GoalDef goal
-                                manhattan-distance
-                                (partial find-neighbors graph)))]
+                     goal
+                     manhattan-distance
+                     (partial find-neighbors graph))]
     (is (valid-solution? path start goal))))
 
 (deftest test-astar-no-solution
@@ -143,7 +143,7 @@
         start [0 0]
         goal [3 3]
         path (a-star start
-                     (->GoalDef goal
-                                manhattan-distance
-                                (partial find-neighbors graph)))]
+                    goal
+                     manhattan-distance
+                     (partial find-neighbors graph))]
     (is (= path []))))

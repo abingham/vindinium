@@ -65,7 +65,7 @@ came-from) based on a discovering a neighber N of node CURRENT."
                         closed-set :closed-set
                         :as state}
                        current
-                       graph]
+                       goal-def]
   "Given a processing STATE, a CURRENT node, a GOAL node, a distance
 HEURISTIC, and a function to FIND-NEIGHBORS, this will calculate a new
 processing state."
@@ -73,10 +73,10 @@ processing state."
                              :open-set (disj open-set current)
                              :closed-set (conj closed-set current))
         neighbors (filter #(not (contains? (:closed-set intermediate-state) %)) 
-                          ((:find-neighbors graph) current))
+                          ((:find-neighbors goal-def) current))
         state-updates (map #(update-state current 
                                           % 
-                                          graph
+                                          goal-def
                                           intermediate-state)
                            neighbors)]
     (reduce 'combine-states 
@@ -98,8 +98,7 @@ processing state."
   never over-estimates the distance. It is a function of two arguments
   ``([node-a node-b])``.
 
-  ``goal-def`` must by a ``GoalDef`` record, and its
-  ``find-neighbors`` function must find all traversable neighbors of a
+  ``find-neighbors`` must find all traversable neighbors of a
   node. Its signature is ``([node])`` and it must return a sequence of
   neighbors.
 
@@ -109,19 +108,20 @@ processing state."
   ``goal`` - describing the path. If no path exists, this returns an
   empty sequence.
 "
-    [start
-     ^GoalDef {goal      :goal
-               heuristic :heuristic
-               :as goal-def}]
-
-  (loop [state (make-initial-state start (heuristic start goal))
-         current start]
-    (if (= current goal) 
-      (reconstruct-path (:came-from state) goal)
-      (let [new-state (calc-new-state state current goal-def)]
-        (if (empty? (:open-set new-state))
-          []
-          (recur new-state
-                 (apply min-key 
-                        (:f-score new-state) 
-                        (:open-set new-state))))))))
+  [start
+   goal
+   heuristic
+   find-neighbors]
+  
+  (let [goal-def (->GoalDef goal heuristic find-neighbors)]
+    (loop [state (make-initial-state start (heuristic start goal))
+           current start]
+      (if (= current goal) 
+        (reconstruct-path (:came-from state) goal)
+        (let [new-state (calc-new-state state current goal-def)]
+          (if (empty? (:open-set new-state))
+            []
+            (recur new-state
+                   (apply min-key 
+                          (:f-score new-state) 
+                          (:open-set new-state)))))))))
