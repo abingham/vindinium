@@ -48,11 +48,11 @@ came-from) based on a discovering a neighber N of node CURRENT."
               goal
               heuristic
               find-neighbors]
-  "Uses A-* to find a path from node START to node GOAL. HEURISTIC
-must be function taking two nodes and returning an estimate of the
-distance from one to the other. HEURISTIC must be 'admissble' meaning
-that it must not overstimate the distance. FIND-NEIGHBORS must take a
-node and return all of its neighbors in the graph."
+  "Uses A-* to find a shortest path from node START to node
+GOAL. HEURISTIC must be an admissible (non-overestimating) function
+taking two nodes and returning an estimate of the distance from one to
+the other. FIND-NEIGHBORS must take a node and return all of its
+neighbors in the graph."
   (loop [g-score (hash-map start 0) ; distance to from start to node
          f-score (hash-map start (heuristic start goal)) ; distance to node (g-score) plus heuristic distance to goal
          closed-set (hash-set)
