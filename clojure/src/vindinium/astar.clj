@@ -66,16 +66,20 @@ GOAL. HEURISTIC must be an admissible (non-overestimating) function
 taking two nodes and returning an estimate of the distance from one to
 the other. FIND-NEIGHBORS must take a node and return all of its
 neighbors in the graph."
-  (loop [state (make-initial-state start (heuristic start goal))]
+  (loop [{f-score :f-score
+          open-set :open-set
+          closed-set :closed-set
+          came-from :came-from
+          :as state} (make-initial-state start (heuristic start goal))]
     ; TODO: There must be a better way to express this than with the if-statements. Pattern matching? Something...
-    (if (empty? (:open-set state))
+    (if (empty? open-set)
       []
-      (let [current (apply min-key (:f-score state) (:open-set state))]
+      (let [current (apply min-key f-score open-set)]
         (if (= current goal) 
-          (reconstruct-path (:came-from state) goal)
+          (reconstruct-path came-from goal)
           (let [intermediate-state (assoc state 
-                                     :open-set (disj (:open-set state) current)
-                                     :closed-set (conj (:closed-set state) current))
+                                     :open-set (disj open-set current)
+                                     :closed-set (conj closed-set current))
                 neighbors (filter #(not (contains? (:closed-set intermediate-state) %)) 
                                   (find-neighbors current))
                 state-updates (map #(update-state current 
