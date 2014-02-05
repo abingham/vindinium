@@ -83,6 +83,26 @@ processing state."
             intermediate-state
             state-updates)))
 
+(defn- states
+  "Generate the sequence of States of the algorithm."
+
+  ([start goal-def] 
+     (let [initial-state (make-initial-state start ((:heuristic goal-def) start (:goal goal-def)))] 
+       (cons initial-state (lazy-seq (states start goal-def initial-state)))))
+  
+  ([start goal-def state]
+     (if (empty? (:open-set state)) []
+         (let [current (apply min-key (:f-score state) (:open-set state))] 
+           (if (= current (:goal goal-def))
+             []
+             (let [new-state (calc-new-state state current goal-def)]
+               (cons new-state (lazy-seq (states start goal-def new-state)))))))))
+
+(defn- is-solution? [path start goal]
+  "Verify that ``path`` looks like a correct solution."
+  (and (= (first path) start)
+       (= (last path) goal)))
+
 (defn a-star 
   "Uses A-* to find a shortest path from a start node to a goal node in a graph.
   
@@ -113,15 +133,8 @@ processing state."
    heuristic
    find-neighbors]
   
-  (let [goal-def (->GoalDef goal heuristic find-neighbors)]
-    (loop [state (make-initial-state start (heuristic start goal))
-           current start]
-      (if (= current goal) 
-        (reconstruct-path (:came-from state) goal)
-        (let [new-state (calc-new-state state current goal-def)]
-          (if (empty? (:open-set new-state))
-            []
-            (recur new-state
-                   (apply min-key 
-                          (:f-score new-state) 
-                          (:open-set new-state)))))))))
+  (let [goal-def (->GoalDef goal heuristic find-neighbors)
+        all-states (states start goal-def)
+        last-state (last all-states)
+        path (reconstruct-path (:came-from last-state) goal)]
+    (if (is-solution? path start goal) path [])))
