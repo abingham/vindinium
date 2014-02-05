@@ -83,15 +83,37 @@ processing state."
             intermediate-state
             state-updates)))
 
-(defn a-star [start
-              {goal      :goal
+(defn a-star 
+  "Uses A-* to find a shortest path from a start node to a goal node in a graph.
+  
+  ``start`` is the \"index\" of the start node in the graph. It can be
+  any type, so long as it's understood by the ``heuristic`` and
+  ``find-neighbor`` functions.
+
+  ``goal`` is the index of the goal node in the graph. It has the same
+  constraints as ``start``.
+
+  ``heuristic`` is an *admissible* heuristic function for finding the
+  distance between two nodes in the graph. *Admissible* means that it
+  never over-estimates the distance. It is a function of two arguments
+  ``([node-a node-b])``.
+
+  ``goal-def`` must by a ``GoalDef`` record, and its
+  ``find-neighbors`` function must find all traversable neighbors of a
+  node. Its signature is ``([node])`` and it must return a sequence of
+  neighbors.
+
+  If a path from ``start`` to ``goal`` exists, then this returns an
+  in-order sequence of nodes (the type of which is determined by
+  ``find-neighbors``) - starting with ``start`` and ending with
+  ``goal`` - describing the path. If no path exists, this returns an
+  empty sequence.
+"
+    [start
+     ^GoalDef {goal      :goal
                heuristic :heuristic
                :as goal-def}]
-  "Uses A-* to find a shortest path from node START to node
-GOAL. HEURISTIC must be an admissible (non-overestimating) function
-taking two nodes and returning an estimate of the distance from one to
-the other. FIND-NEIGHBORS must take a node and return all of its
-neighbors in the graph."
+
   (loop [state (make-initial-state start (heuristic start goal))
          current start]
     (if (= current goal) 
