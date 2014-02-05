@@ -32,11 +32,11 @@
                     n
                     goal
                     heuristic
-                    {g-score :g-score
-                     f-score :f-score
-                     open-set :open-set
+                    {g-score    :g-score
+                     f-score    :f-score
+                     open-set   :open-set
                      closed-set :closed-set
-                     came-from :came-from
+                     came-from  :came-from
                      :as state}]
   "Updates the algorithm state (g-score, f-score, open-set, and
 came-from) based on a discovering a neighber N of node CURRENT."
@@ -57,6 +57,31 @@ came-from) based on a discovering a neighber N of node CURRENT."
   (into {} (for [key (keys x)]
              [key (conj (x key) (y key))])))
 
+(defn- calc-new-state [{open-set :open-set
+                        closed-set :closed-set
+                        :as state}
+                       current
+                       goal
+                       heuristic
+                       find-neighbors]
+  "Given a processing STATE, a CURRENT node, a GOAL node, a distance
+HEURISTIC, and a function to FIND-NEIGHBORS, this will calculate a new
+processing state."
+  (let [intermediate-state (assoc state 
+                             :open-set (disj open-set current)
+                             :closed-set (conj closed-set current))
+        neighbors (filter #(not (contains? (:closed-set intermediate-state) %)) 
+                          (find-neighbors current))
+        state-updates (map #(update-state current 
+                                          % 
+                                          goal 
+                                          heuristic
+                                          intermediate-state)
+                           neighbors)]
+    (reduce 'combine-states 
+            intermediate-state
+            state-updates)))
+
 (defn a-star [start 
               goal
               heuristic
@@ -66,28 +91,14 @@ GOAL. HEURISTIC must be an admissible (non-overestimating) function
 taking two nodes and returning an estimate of the distance from one to
 the other. FIND-NEIGHBORS must take a node and return all of its
 neighbors in the graph."
-  (loop [{f-score :f-score
-          open-set :open-set
-          closed-set :closed-set
-          came-from :came-from
-          :as state} (make-initial-state start (heuristic start goal))]
-    ; TODO: There must be a better way to express this than with the if-statements. Pattern matching? Something...
-    (if (empty? open-set)
-      []
-      (let [current (apply min-key f-score open-set)]
-        (if (= current goal) 
-          (reconstruct-path came-from goal)
-          (let [intermediate-state (assoc state 
-                                     :open-set (disj open-set current)
-                                     :closed-set (conj closed-set current))
-                neighbors (filter #(not (contains? (:closed-set intermediate-state) %)) 
-                                  (find-neighbors current))
-                state-updates (map #(update-state current 
-                                                  % 
-                                                  goal 
-                                                  heuristic
-                                                  intermediate-state)
-                                   neighbors)]
-            (recur (reduce 'combine-states 
-                           intermediate-state
-                           state-updates))))))))
+  (loop [state (make-initial-state start (heuristic start goal))
+         current start]
+    (if (= current goal) 
+      (reconstruct-path (:came-from state) goal)
+      (let [new-state (calc-new-state state current goal heuristic find-neighbors)]
+        (if (empty? (:open-set new-state))
+          []
+          (recur new-state
+                 (apply min-key 
+                        (:f-score new-state) 
+                        (:open-set new-state))))))))
