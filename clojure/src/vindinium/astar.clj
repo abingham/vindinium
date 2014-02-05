@@ -8,6 +8,10 @@
                   open-set
                   came-from])
 
+(defrecord GoalDef [goal
+                    heuristic
+                    find-neighbors])
+
 (defn- make-initial-state [start h-to-goal]
   (let [g-score (hash-map start 0)
         f-score (hash-map start h-to-goal)
@@ -29,15 +33,15 @@
              (conj path (came-from node))))))
 
 (defn- update-state [current
-                    n
-                    goal
-                    heuristic
-                    {g-score    :g-score
-                     f-score    :f-score
-                     open-set   :open-set
-                     closed-set :closed-set
-                     came-from  :came-from
-                     :as state}]
+                     n
+                     {goal      :goal
+                      heuristic :heuristic}
+                     {g-score    :g-score
+                      f-score    :f-score
+                      open-set   :open-set
+                      closed-set :closed-set
+                      came-from  :came-from
+                      :as state}]
   "Updates the algorithm state (g-score, f-score, open-set, and
 came-from) based on a discovering a neighber N of node CURRENT."
   (let [tentative-score 
@@ -57,13 +61,11 @@ came-from) based on a discovering a neighber N of node CURRENT."
   (into {} (for [key (keys x)]
              [key (conj (x key) (y key))])))
 
-(defn- calc-new-state [{open-set :open-set
+(defn- calc-new-state [{open-set   :open-set
                         closed-set :closed-set
                         :as state}
                        current
-                       goal
-                       heuristic
-                       find-neighbors]
+                       graph]
   "Given a processing STATE, a CURRENT node, a GOAL node, a distance
 HEURISTIC, and a function to FIND-NEIGHBORS, this will calculate a new
 processing state."
@@ -71,21 +73,20 @@ processing state."
                              :open-set (disj open-set current)
                              :closed-set (conj closed-set current))
         neighbors (filter #(not (contains? (:closed-set intermediate-state) %)) 
-                          (find-neighbors current))
+                          ((:find-neighbors graph) current))
         state-updates (map #(update-state current 
                                           % 
-                                          goal 
-                                          heuristic
+                                          graph
                                           intermediate-state)
                            neighbors)]
     (reduce 'combine-states 
             intermediate-state
             state-updates)))
 
-(defn a-star [start 
-              goal
-              heuristic
-              find-neighbors]
+(defn a-star [start
+              {goal      :goal
+               heuristic :heuristic
+               :as goal-def}]
   "Uses A-* to find a shortest path from node START to node
 GOAL. HEURISTIC must be an admissible (non-overestimating) function
 taking two nodes and returning an estimate of the distance from one to
@@ -95,7 +96,7 @@ neighbors in the graph."
          current start]
     (if (= current goal) 
       (reconstruct-path (:came-from state) goal)
-      (let [new-state (calc-new-state state current goal heuristic find-neighbors)]
+      (let [new-state (calc-new-state state current goal-def)]
         (if (empty? (:open-set new-state))
           []
           (recur new-state
