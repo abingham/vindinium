@@ -24,6 +24,12 @@
              open-set
              came-from)))
 
+(defn- is-solution? [path start goal]
+  "Verify that ``path`` looks like a correct solution."
+  (and (= (first path) start)
+       (= (last path) goal)))
+
+
 (defn- reconstruct-path [came-from node]
   (loop [node node
          path [node]]
@@ -58,6 +64,9 @@ came-from) based on a discovering a neighber N of node CURRENT."
       state)))
 
 (defn- combine-states [x y]
+  ; TODO: There is a serious error here (surprise surprise). We
+  ; blindly combine maps (e.g. f-score) when we should be ensuring
+  ; that the lowest scored is kept.
   (into {} (for [key (keys x)]
              [key (conj (x key) (y key))])))
 
@@ -97,11 +106,6 @@ processing state."
              []
              (let [new-state (calc-new-state state current goal-def)]
                (cons new-state (lazy-seq (states start goal-def new-state)))))))))
-
-(defn- is-solution? [path start goal]
-  "Verify that ``path`` looks like a correct solution."
-  (and (= (first path) start)
-       (= (last path) goal)))
 
 (defn a-star 
   "Uses A-* to find a shortest path from a start node to a goal node in a graph.

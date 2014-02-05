@@ -159,6 +159,5 @@
     (is (valid-solution? path start goal))
     (let [x-path [[0 0] [1 0] [2 0] [3 0] [3 1] [3 2] [3 3]]
           y-path (vec (map (fn [x] [(last x) (first x)]) x-path))]
-      (is (= path x-path))
       (is (or (= path x-path)
               (= path y-path))))))
