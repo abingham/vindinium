@@ -1,8 +1,24 @@
-(ns vindinium.astar
-  (:use clojure.data.priority-map)
-  (:use clojure.test))
+(ns vindinium.astar)
 
 ;-------------------------------------------------------------------------------
+
+(defrecord State [g-score 
+                  f-score 
+                  closed-set 
+                  open-set
+                  came-from])
+
+(defn- make-initial-state [start h-to-goal]
+  (let [g-score (hash-map start 0)
+        f-score (hash-map start h-to-goal)
+        closed-set (hash-set)
+        open-set (hash-set start)
+        came-from (hash-map)]
+    (->State g-score
+             f-score
+             closed-set
+             open-set
+             came-from)))
 
 (defn- reconstruct-path [came-from node]
   (loop [node node
@@ -12,14 +28,16 @@
       (recur (came-from node) 
              (conj path (came-from node))))))
 
-(defn- update-sets [current
+(defn- update-state [current
                     n
                     goal
                     heuristic
-                    came-from
-                    g-score
-                    f-score
-                    open-set]
+                    {g-score :g-score
+                     f-score :f-score
+                     open-set :open-set
+                     closed-set :closed-set
+                     came-from :came-from
+                     :as state}]
   "Updates the algorithm state (g-score, f-score, open-set, and
 came-from) based on a discovering a neighber N of node CURRENT."
   (let [tentative-score 
@@ -29,16 +47,11 @@ came-from) based on a discovering a neighber N of node CURRENT."
         (inc (g-score current))]
     (if (or (not (contains? g-score n)) 
             (< tentative-score (g-score n)))
-      
-      {:came-from (assoc came-from n current),
-       :g-score (assoc g-score n tentative-score),
-       :f-score (assoc f-score n (+ tentative-score (heuristic n goal)))
-       :open-set (conj open-set n)}
-
-      {:came-from came-from, 
-       :g-score g-score,
-       :f-score f-score,
-       :open-set open-set})))
+      (assoc state :g-score (assoc g-score n tentative-score)
+                   :f-score (assoc f-score n (+ tentative-score (heuristic n goal)))
+                   :open-set (conj open-set n)
+                   :came-from (assoc came-from n current))
+      state)))
 
 (defn- combine-states [x y]
   (into {} (for [key (keys x)]
@@ -53,38 +66,24 @@ GOAL. HEURISTIC must be an admissible (non-overestimating) function
 taking two nodes and returning an estimate of the distance from one to
 the other. FIND-NEIGHBORS must take a node and return all of its
 neighbors in the graph."
-  (loop [g-score (hash-map start 0) ; distance to from start to node
-         f-score (hash-map start (heuristic start goal)) ; distance to node (g-score) plus heuristic distance to goal
-         closed-set (hash-set)
-         open-set (hash-set start)
-         came-from (hash-map)]
+  (loop [state (make-initial-state start (heuristic start goal))]
     ; TODO: There must be a better way to express this than with the if-statements. Pattern matching? Something...
-    (if (empty? open-set)
+    (if (empty? (:open-set state))
       []
-      (let [current (apply min-key 'f-score open-set)]
+      (let [current (apply min-key (:f-score state) (:open-set state))]
         (if (= current goal) 
-          (reconstruct-path came-from goal)
-          (let [open-set (disj open-set current)
-                closed-set (conj closed-set current)
-                neighbors (filter (fn [x] (not (contains? closed-set x))) 
+          (reconstruct-path (:came-from state) goal)
+          (let [intermediate-state (assoc state 
+                                     :open-set (disj (:open-set state) current)
+                                     :closed-set (conj (:closed-set state) current))
+                neighbors (filter #(not (contains? (:closed-set intermediate-state) %)) 
                                   (find-neighbors current))
-                state-updates (map (fn [n] (update-sets current 
-                                                        n 
-                                                        goal 
-                                                        heuristic
-                                                        came-from 
-                                                        g-score 
-                                                        f-score 
-                                                        open-set))
-                                   neighbors)
-                new-state (reduce 'combine-states 
-                                  {:came-from came-from,
-                                   :g-score g-score,
-                                   :f-score f-score,
-                                   :open-set open-set}
-                                  state-updates)]
-            (recur (new-state :g-score)
-                   (new-state :f-score)
-                   closed-set
-                   (new-state :open-set)
-                   (new-state :came-from))))))))
+                state-updates (map #(update-state current 
+                                                  % 
+                                                  goal 
+                                                  heuristic
+                                                  intermediate-state)
+                                   neighbors)]
+            (recur (reduce 'combine-states 
+                           intermediate-state
+                           state-updates))))))))
