@@ -66,13 +66,15 @@ came-from) based on a discovering a neighber N of node CURRENT."
       state)))
 
 (defn- combine-states [x y]
+  "Given two State instances, combine them into a single State with
+the best paths selected from each."
   (let [x-nodes (set (keys (:g-score x)))
         y-nodes (set (keys (:g-score y)))
         common-nodes (intersection x-nodes y-nodes)
         x-only-nodes (difference x-nodes common-nodes)
         y-only-nodes (difference y-nodes common-nodes)
-        x-min-nodes (for [n common-nodes :when (< ((:g-score x) n) ((:g-score y) n))] n)
-        y-min-nodes (clojure.set/difference common-nodes x-min-nodes)
+        x-min-nodes (select #(< ((:g-score x) %) ((:g-score y) %)) common-nodes)
+        y-min-nodes (difference common-nodes x-min-nodes)
         min-selector (fn [tag] (merge (select-keys (tag x) (concat x-only-nodes x-min-nodes))
                                       (select-keys (tag y) (concat y-only-nodes y-min-nodes))))]
     (->State (min-selector :g-score)

@@ -49,7 +49,8 @@
                    [0 0 0 0]])
 
 ; Tests for reconstruct-path
-(with-private-fns [vindinium.astar [reconstruct-path]]
+(with-private-fns [vindinium.astar [reconstruct-path
+                                    combine-states]]
 
   (deftest test-reconstruct-path
     (is (= [[0 0] [0 1] [1 1]] 
@@ -61,7 +62,58 @@
     (is (= [[2 2]]
            (reconstruct-path {[1 1] [0 1],
                               [0 1] [0 0]}
-                             [2 2])))))
+                             [2 2]))))
+  
+  ; This is a bit ugly, but I fear that a bunch of smaller tests would
+  ; just be noisy. I'll try to make the output of this test very
+  ; diagnostic.
+  (deftest test-combine-states
+    (let [s1 (->State (hash-map [0 0] 0 
+                                [1 1] 3 
+                                [2 2] 2
+                                [3 3] 4)
+                      (hash-map [0 0] 0 
+                                [1 1] 4 
+                                [2 2] 3
+                                [3 3] 5)
+                      (hash-set [0 0] [1 1] [2 2] [3 3])
+                      (hash-set [10 10] [11 11])
+                      (hash-map [1 1] [0 0]
+                                [2 2] [1 1]
+                                [3 3] [1 1]))
+          s2 (->State (hash-map [0 0] 0 
+                                [1 1] 2
+                                [2 2] 3
+                                [4 4] 1)
+                      (hash-map [0 0] 0 
+                                [1 1] 3
+                                [2 2] 4
+                                [4 4] 2)
+                      (hash-set [0 0] [1 1] [2 2] [4 4])
+                      (hash-set [10 10] [12 12])
+                      (hash-map [1 1] [0 0]
+                                [2 2] [0 0]
+                                [4 4] [2 2]))
+          expected (->State (hash-map [0 0] 0 
+                                      [1 1] 2
+                                      [2 2] 2
+                                      [3 3] 4
+                                      [4 4] 1)
+                            (hash-map [0 0] 0 
+                                      [1 1] 3
+                                      [2 2] 3
+                                      [3 3] 5
+                                      [4 4] 2)
+                            (hash-set [0 0] [1 1] [2 2] [3 3] [4 4])
+                            (hash-set [10 10] [11 11] [12 12])
+                            (hash-map [1 1] [0 0]
+                                      [2 2] [1 1]
+                                      [3 3] [1 1]
+                                      [4 4] [2 2]))
+          combined (combine-states s1 s2)]
+      (doall (map #(is (= (% expected) (% combined))) (keys expected)))))
+  
+)
 
 ; sanity tests for our utility functions
 
